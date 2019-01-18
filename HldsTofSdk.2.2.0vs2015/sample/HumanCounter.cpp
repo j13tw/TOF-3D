@@ -1,30 +1,3 @@
-/**
-* @file			HumanCounter.cpp
-* @brief		Sample program for Hitachi-LG Data Storage (HLDS)'s TOF Motion Sensor
-* @author		Hitachi-LG Data Storage, Inc. (HLDS)
-* @date			2018.03.07
-* @version		v2.2.0
-* @copyright	Hitachi-LG Data Storage,Inc.
-*
-* @par Change History:
-* - 2016.06.30 New
-* - 2017.04.28 v1.1.0
-*					- Add hand detection function
-*					- Add edge noise reduction
-*					- Support playing capture data
-* - 2018.03.07 v2.0.0
-*					- Support vertical position of sensor (HLS-LFOM5 is vertical in its default)
-*					- Change rotation order from X-Y-Z to Z-Y-X
-*					- Transpose sub display in case of vertical position
-* - 2018.02.13 v2.1.0
-*					- Add close window function
-* - 2018.03.07 v2.2.0
-*					- Add Enable Area
-*					- Avoid negative value for angles
-*					- Change LowSignalCutoff value from 20 to 10
-*					- Add Side/Front View for calibration
-*/
-
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <Windows.h>
@@ -85,7 +58,7 @@ using namespace hlds;
 #define SECTION_HEIGHT_MIN		(-500)			//Min height of side/front view [mm]
 #define SECTION_HEIGHT_MAX		(2000)			//Max height of side/front view [mm]
 
-//Human count
+//Human count 計算列表
 struct {
 	int Enter[4];			//Human count who enter to the area from each direction(Use COUNT_XXX macro)
 	int Exit[4];			//Human count who exit from the area to each direction(Use COUNT_XXX macro)
@@ -179,7 +152,7 @@ vector<AppHuman> apphumans;
 //Human ID managed in application
 int apphumanid = 0;
 
-//Save ini file
+//Save ini file 儲存 ini 設定檔
 bool SaveIniFile(void)
 {
 	BOOL ret;
@@ -284,7 +257,7 @@ bool SaveIniFile(void)
 	return true;
 }
 
-//Load ini file
+//Load ini file 讀取ini檔案
 bool LoadIniFile(void){
 
 	DWORD ret;
@@ -385,8 +358,8 @@ void InitializeHumans(void)
 
 bool InCountArea(float x, float y)
 {
-	if ((x >= Count.Square.left_x) && (x <= Count.Square.right_x) &&
-		(y >= Count.Square.top_y) && (y <= Count.Square.bottom_y)){
+	if ((x >= Count.Square.left_x) && (x <= Count.Square.right_x) && (y >= Count.Square.top_y) && (y <= Count.Square.bottom_y))
+	{
 		return true;
 	}
 	return false;
@@ -394,8 +367,8 @@ bool InCountArea(float x, float y)
 
 bool InEnableArea(float x, float y)
 {
-	if ((x >= EnableArea.left_x) && (x <= EnableArea.right_x) &&
-		(y >= EnableArea.top_y) && (y <= EnableArea.bottom_y)){
+	if ((x >= EnableArea.left_x) && (x <= EnableArea.right_x) && (y >= EnableArea.top_y) && (y <= EnableArea.bottom_y))
+	{
 		return true;
 	}
 	return false;
@@ -403,12 +376,12 @@ bool InEnableArea(float x, float y)
 
 int CountDirection(float x, float y)
 {
-	//Linear equation from upper left to lower right of count area�Fy = a1 * x + b1
+	//Linear equation from upper left to lower right of count area�Fy = a1 * x + b1
 	float a1 = (Count.Square.bottom_y - Count.Square.top_y) / (Count.Square.right_x - Count.Square.left_x);
 	float b1 = Count.Square.top_y - a1 * Count.Square.left_x;
 	float y1 = a1 * x + b1;
 
-	//Linear equation from lower left to upper right of count area�Fy = a2 * x + b2
+	//Linear equation from lower left to upper right of count area�Fy = a2 * x + b2
 	float a2 = (Count.Square.bottom_y - Count.Square.top_y) / (Count.Square.left_x - Count.Square.right_x);
 	float b2 = Count.Square.top_y - a2 * Count.Square.right_x;
 	float y2 = a2 * x + b2;
@@ -668,6 +641,7 @@ void DrawHumans(void)
 	}
 }
 
+// 顯示計算人數數量文字區域
 void DrawCount(void)
 {
 	//Display count area
@@ -895,9 +869,8 @@ void DrawSection(Frame3d* pframe3d)
 		cv::Point(FRONT_VIEW_X + FRONT_VIEW_WIDTH, FRONT_VIEW_Y + FRONT_VIEW_HEIGHT), cv::Scalar(255, 0, 0), 2);
 }
 
-//Save screen when f key is pushed
+// 解決 Save screen when f key is pushed 儲存圖片
 bool SaveFile(void){
-
 	//Make file name with current time
 	char buff[16];
 	time_t now = time(NULL);
@@ -1028,20 +1001,24 @@ void main(void)
 	bool bEtof = false;
 	Result ret = Result::OK;
 
-	//Load ini file
+	// [拆Function] Load ini file 
+	// 撈取 Human.ini 檔案設定
 	LoadIniFile();
 
-	//Create TofManager
+	// [解決] Create TofManager 
+	// 利用 ToFManger 對於網路中 ToF 設備進行查找 
 	TofManager tofm;
 
-	//Open TOF Manager (Read tof.ini file)
+	// [解決] Open TOF Manager (Read tof.ini file) 
+	// 讀取 tof.ini 檔案
 	if (tofm.Open() != Result::OK){
 		std::cout << "TofManager Open Error (may not be tof.ini file)" << endl;
 		system("pause");
 		return;
 	}
 
-	//Get number of TOF sensor and TOF information list
+	// [解決] Get number of TOF sensor and TOF information list 
+	// 確認網路環境中 ToF 設備數量
 	const TofInfo * ptofinfo = nullptr;
 	int numoftof = tofm.GetTofList(&ptofinfo);
 
@@ -1050,10 +1027,12 @@ void main(void)
 		bEtof = true;
 	}
 
-	//Create Tof instance for a TOF sensor
+	// [解決] Create Tof instance for a TOF sensor 
+	// 實作 ToF 設備
 	Tof tof;
 
-	//Open Tof instance (Set TOF information)
+	// [解決] Open Tof instance (Set TOF information) 
+	// 確認 ToF 是否存在於網路環境中，並嘗試開啟連線(該執行檔僅找一台 ToF 開啟)
 	if (bEtof == false){
 		if (tof.Open(ptofinfo[0]) != Result::OK){
 			std::cout << "TOF ID " << ptofinfo[0].tofid << " Open Error" << endl;
@@ -1073,21 +1052,48 @@ void main(void)
 		}
 	}
 
-	//Once Tof instances are started, TofManager is not necessary and closed
+	// [解決] Once Tof instances are started, TofManager is not necessary and closed
+	// 當 ToF 設備實做並測試連線之後，ToF Manger 將會自動關閉(ToF Manger 僅用於查找設備)
 	if (tofm.Close() != Result::OK){
 		std::cout << "TofManager Close Error" << endl;
 		system("pause");
 		return;
 	}
 
-	//Set camera mode as Depth mode
+	// [解決] Set camera mode as Depth mode
+	// 設定 ToF 攝影機擷取影像模式
+	// tof.SetCameraMode(CameraMode::CameraModeDepth)
+	// tof.SetCameraMode(CameraMode::ToF影像擷取模式)
+	// ToF 影像擷取模式列表
+	// |- CameraModeDepth   - 深度輸出模式
+	// |- CameraModeIr      - 紅外線輸出模式
+	// |- CameraModeMotion  - 運動化輸出模式
+	// |- Depth_Motion      - 深度 + 運動化輸出模式
+	// |- Depth_Background  - 深度 + 背景結合輸出模式
+	// |- Depth_Ir          - 深度 + 紅外線輸出模式
+	// |- Motion_Background - 運動化 + 背景結合輸出模式
+	// |- Motion_Ir         - 運動化 + 紅外線輸出模式
+	// |- Background_Ir     - 背景結合 + 紅外線輸出模式
+	// |- CameraModeUnkown  - 未配置或是未知模式
 	if (tof.SetCameraMode(CameraMode::CameraModeDepth) != Result::OK){
 		std::cout << "TOF ID " << tof.tofinfo.tofid << " Set Camera Mode Error" << endl;
 		system("pause");
 		return;
 	}
 
-	//Set camera pixel
+	// [解決] Set camera pixel
+	// 設定 ToF 設備輸出的圖像大小
+	// tof.SetCameraPixel(CameraPixel::w320h240)
+	// tof.SetCameraPixel(CameraPixel::圖像大小)
+	// 圖像大小列表
+	// |- w640h480 - 寬640 * 高480
+	// |- w320h240 - 寬320 * 高240
+	// |- w160h120 - 寬160 * 高120
+	// |- w80h60   - 寬80  * 高60
+	// |- w64h48   - 寬64  * 高48
+	// |- w40h30   - 寬40  * 高30
+	// |- w32h24   - 寬32  * 高24
+
 	if (tof.SetCameraPixel(CameraPixel::w320h240) != Result::OK){
 		//	if (tof.SetCameraPixel(CameraPixel::w160h120) != Result::OK){
 		std::cout << "TOF ID " << tof.tofinfo.tofid << " Set Camera Pixel Error" << endl;
@@ -1095,28 +1101,47 @@ void main(void)
 		return;
 	}
 
-	//Set TOF sensor angle and height
+	// [解決] Set TOF sensor angle and height
+	// 當人物識別時 需要設定 ToF 安裝的位置 以及旋轉的角度
+	// tof.SetAttribute(0, 0, height * -1, angle_x, angle_y, angle_z)
+	// tof.SetAttribute(x軸位移, y軸位移, z軸位移(高度 * -1), x軸旋轉角度, y軸旋轉角度, z軸旋轉角度)
+	// 全部數值型態皆為浮點數
 	if (tof.SetAttribute(0, 0, height * -1, angle_x, angle_y, angle_z) != Result::OK){
 		std::cout << "TOF ID " << tof.tofinfo.tofid << " Set Camera Position Error" << endl;
 		system("pause");
 		return;
 	}
 
-	//Noise reduction(Low signal cutoff)
+	// [解決] Noise reduction(Low signal cutoff)
+	// 設定低頻視訊訊號切割閥值
+	// tof.SetLowSignalCutoff(閥值)
+	// 閥值區間 0 - 4095 (0 = 不切斷 / 4095 = 最大值)
 	if (tof.SetLowSignalCutoff(10) != Result::OK){
 		std::cout << "TOF ID " << tof.tofinfo.tofid << " Low Signal Cutoff Error" << endl;
 		system("pause");
 		return;
 	}
 
-	//Edge noise reduction
+	// [解決] Edge noise reduction
+	// 邊緣降噪模式設定 (跟低頻訊號切割閥值共同使用)
+	// tof.SetEdgeSignalCutoff(EdgeSignalCutoff::Enable)
+	// tof.SetEdgeSignalCutoff(EdgeSignalCutoff::設定值)
+	// 設定值 Enable / Disable
 	if (tof.SetEdgeSignalCutoff(EdgeSignalCutoff::Enable) != Result::OK){
 		std::cout << "TOF ID " << tof.tofinfo.tofid << " Edge Noise Reduction Error" << endl;
 		system("pause");
 		return;
 	}
 
-	//Start human detection
+	// [解決] Start human detection
+	// 開啟 ToF 設備，設定開啟 ToF 的模式使用
+	// tof.Run(RunMode::HumanDetect)
+	// tof.Run(RunMode::模式設定值);
+	// 模式設定值
+	// - Normal         - 一般模式
+	// - HumanDetect    - 人物識別模式
+	// - FrameEmulation - 畫面單張分析模式
+	// - Unknown        - 未設定或未知模式
 	ret = tof.Run(RunMode::HumanDetect);
 	if (ret != Result::OK){
 		std::cout << "TOF ID " << tof.tofinfo.tofid << " Run Error: " << (int)ret << endl;
