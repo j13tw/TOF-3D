@@ -58,7 +58,8 @@ using namespace hlds;
 #define SECTION_HEIGHT_MIN		(-500)			//Min height of side/front view [mm]
 #define SECTION_HEIGHT_MAX		(2000)			//Max height of side/front view [mm]
 
-//Human count 計算列表
+// [解決] Human count 
+// 建立計算列表結構
 struct {
 	int Enter[4];			//Human count who enter to the area from each direction(Use COUNT_XXX macro)
 	int Exit[4];			//Human count who exit from the area to each direction(Use COUNT_XXX macro)
@@ -257,7 +258,8 @@ bool SaveIniFile(void)
 	return true;
 }
 
-//Load ini file 讀取ini檔案
+// [解決]Load ini file 
+// 讀取 Human ini 組態檔案
 bool LoadIniFile(void){
 
 	DWORD ret;
@@ -869,7 +871,8 @@ void DrawSection(Frame3d* pframe3d)
 		cv::Point(FRONT_VIEW_X + FRONT_VIEW_WIDTH, FRONT_VIEW_Y + FRONT_VIEW_HEIGHT), cv::Scalar(255, 0, 0), 2);
 }
 
-// 解決 Save screen when f key is pushed 儲存圖片
+// [解決] Save screen when f key is pushed 
+// 針對現在時間為名稱儲存圖片
 bool SaveFile(void){
 	//Make file name with current time
 	char buff[16];
@@ -985,19 +988,26 @@ bool ChangeAttribute(Tof& tof, float x, float y, float z, float rx, float ry, fl
 
 void main(void)
 {
-	//Initialize human counter
+	// [解決] Initialize human counter
+	// 將目前設置的 人數計算列表(Count) 全部清空
+	// memset(&Count, 0, sizeof(Count));
+	// memset(目標變數, 代換的數值, 代換長度)
+	// 配置 Count 之中的結構體 Square 參數
 	memset(&Count, 0, sizeof(Count));
 	Count.Square.left_x = -500;
 	Count.Square.top_y = -2000;
 	Count.Square.right_x = 500;
 	Count.Square.bottom_y = -1000;
 
-	//Initialize Enable Area
+	// [解決] Initialize Enable Area
+	// 定義 有效區間的大小 (上下左右皆要配置)
 	EnableArea.left_x = -700;
 	EnableArea.top_y = -2200;
 	EnableArea.right_x = 700;
 	EnableArea.bottom_y = -800;
 
+	// 定義 ToF 設備是否開啟的變數定義 (bEtof)
+	// 定義 ToF API 回復資料的比對參數 (ret)
 	bool bEtof = false;
 	Result ret = Result::OK;
 
@@ -1104,7 +1114,7 @@ void main(void)
 	// [解決] Set TOF sensor angle and height
 	// 當人物識別時 需要設定 ToF 安裝的位置 以及旋轉的角度
 	// tof.SetAttribute(0, 0, height * -1, angle_x, angle_y, angle_z)
-	// tof.SetAttribute(x軸位移, y軸位移, z軸位移(高度 * -1), x軸旋轉角度, y軸旋轉角度, z軸旋轉角度)
+	// tof.SetAttribute(x軸位移, y軸位移, z軸位移[從地板算起 ToF 設備高度](高度 * -1), x軸旋轉角度, y軸旋轉角度, z軸旋轉角度)
 	// 全部數值型態皆為浮點數
 	if (tof.SetAttribute(0, 0, height * -1, angle_x, angle_y, angle_z) != Result::OK){
 		std::cout << "TOF ID " << tof.tofinfo.tofid << " Set Camera Position Error" << endl;
@@ -1150,42 +1160,62 @@ void main(void)
 	}
 	std::cout << "TOF ID " << tof.tofinfo.tofid << " Run OK" << endl;
 
-	//Create instances for reading frames
+	// [解決] Create instances for reading frames
+	// 實作 深度影像 畫面幀
 	FrameDepth frame;
 
-	//Create instances for 3D data after conversion
+	// [解決] Create instances for 3D data after conversion
+	// 實作 3D影像 畫面幀
 	Frame3d frame3d;
 
-	//Create instances for reading human frames
+	// [解決] Create instances for reading human frames
+	// 時做 人像 畫面幀
 	FrameHumans framehumans;
 
-	//Create color table
+	// [解決] Create color table
+	// 色彩變換 深度影像 -> 具有彩度的影像
+	// frame.CreateColorTable(0, 65530);
+	// frame.CreateColorTable(轉換最小值, 轉換最大值);
 	frame.CreateColorTable(0, 65530);
 
-	//Create display window as changeable size
+	// [解決] Create display window as changeable size
+	// 利用 OpenCV 開啟圖像視窗
 	cv::namedWindow("Human Counter", CV_WINDOW_NORMAL);
 
-	//Sub display
+	// [解決] Sub display
+	// 對於視窗 建立子視窗
 	cv::Mat subdisplay(SUB_DISPLAY_WIDTH, SUB_DISPLAY_HEIGHT, CV_8UC3);
 
 	//Initialize human information
 	InitializeHumans();
 
-	//Initialize background
+	// [解決] Initialize background
+	// 創建圖像空間 (創建圖像大小 -> 內容是空白的)
 	back = cv::Mat::zeros(480 * 2, 640 * 2, CV_8UC3);
 
+	// brun 參數 用於畫面視窗與程式是否退出進行程式停止與跳脫
 	bool brun = true;
 	while (brun){
 
-		//Get the latest frame number
+		// [解決] Get the latest frame number
+		// 建立 frameno 變數，取得最後一張的影像禎計數的數量
+		// 建立 TimeStamp 變數，取得影像抓取時間
+		// tof.GetFrameStatus(&frameno, &timestamp);
+		// tof.GetFrameStatus(最後一張影像編號, 最後一張影像時間);
 		long frameno;
 		TimeStamp timestamp;
 		tof.GetFrameStatus(&frameno, &timestamp);
 
+		// 確認 frame.framenumber -> 影格的影像計數 是否等於 擷取的影像的影像計數
+		// 確認 擷取影像更新 進行影像分析
 		if (frameno != frame.framenumber){
 			//Read a new frame only if frame number is changed(Old data is shown if it is not changed.)
 
-			//Read a frame of humans data
+			// [解決] Read a frame of humans data
+			// 建立 定義 ToF API 回復確認參數 ret = Result::OK
+			// 讀取 ToF 的影像禎數據 --> 人像物件影像禎
+			// tof.ReadFrame(&framehumans)
+			// tof.ReadFrame(讀取建立的影像模式的變數之中)
 			Result ret = Result::OK;
 			ret = tof.ReadFrame(&framehumans);
 			if (ret != Result::OK) {
@@ -1193,7 +1223,8 @@ void main(void)
 				break;
 			}
 
-			//Read a frame of depth data
+			// [解決] Read a frame of depth data
+			// 讀取 ToF 的影像禎數據 --> 深度影像禎
 			ret = Result::OK;
 			ret = tof.ReadFrame(&frame);
 			if (ret != Result::OK) {
@@ -1209,10 +1240,14 @@ void main(void)
 				}
 			}
 
-			//3D conversion(with lens correction)
+			// [解決] 3D conversion(with lens correction)
+			// 將 深度 畫面轉換成 3D 畫面禎
 			frame3d.Convert(&frame);
 
-			//3D rotation in Z,Y,X order(to top view)
+			// [解決] 3D rotation in Z,Y,X order(to top view)
+			// 旋轉 3D 畫面 [X, Y, Z]軸
+			// frame3d.RotateZYX(angle_x, angle_y, angle_z);
+			// frame3d.RotateZYX(X軸角度, Y軸角度, Z軸角度)
 			frame3d.RotateZYX(angle_x, angle_y, angle_z);
 
 			//Initialize Z-buffer
