@@ -110,12 +110,12 @@ float angle_z = 0.0f;				//Angle to rotate around Z-axis(degree)
 float height = 1000.0f;				//Height from floor(mm)
 float dx = 600.0f;					//Shift length to x-axis positive direction(mm)
 float dy = 900.0f;					//Shift length to y-axis positive direction(mm)
-float zoom = 0.12f;					//Zoom ratio
-bool bPoint = true;					//Mode to display points
-bool bBack = false;					//Mode to display footprint on background
-bool bCount = true;					//Mode to display human count
+float zoom = 0.12f;					//Zoom ratio 焦距設定
+bool bPoint = true;					//Mode to display points 顯示 散點模式 開關
+bool bBack = false;					//Mode to display footprint on background 顯示 軌跡模式 開關
+bool bCount = true;					//Mode to display human count 顯示 計算列表 開關
 bool bBoxShift = true;				//true: shift, false: change size in count area setting mode
-bool bSubDisplay = true;			//Mode to display sub display
+bool bSubDisplay = true;			//Mode to display sub display 顯示 視訊子畫面 開關
 bool bEnableArea = false;			//Valid/Invalid Enable Area
 bool bEnableAreaShift = true;		//In Enable Area setting mode... true: Whole box shift, false: Box size change
 
@@ -1250,9 +1250,13 @@ void main(void)
 			// frame3d.RotateZYX(X軸角度, Y軸角度, Z軸角度)
 			frame3d.RotateZYX(angle_x, angle_y, angle_z);
 
-			//Initialize Z-buffer
+			// [解決] Initialize Z-buffer
+			// 初始化 Z 軸值 設定為 0
 			memset(z_buffer, 0, sizeof(z_buffer));
 
+			// [解決] 軌跡模式開關
+			// |- 開 -> 複製 擷取的背景禎
+			// |- 關 -> 清空 目前的畫布
 			if (bBack){
 				img = back.clone();
 			}
@@ -1260,6 +1264,8 @@ void main(void)
 				img = cv::Mat::zeros(480 * 2, 640 * 2, CV_8UC3);
 			}
 
+			// [解決] 子畫面模式開關
+			// |- 開 -> 建構空畫布
 			if (bSubDisplay){
 				//Initialize sub display
 				subdisplay = cv::Mat::zeros(SUB_DISPLAY_HEIGHT, SUB_DISPLAY_WIDTH, CV_8UC3);
@@ -1268,65 +1274,84 @@ void main(void)
 			for (int y = 0; y < frame3d.height; y++){
 				for (int x = 0; x < frame3d.width; x++){
 
-					if ((frame.CalculateLength(frame.databuf[y * frame.width + x]) >= framehumans.distance_min) &&
-						(frame.CalculateLength(frame.databuf[y * frame.width + x]) <= framehumans.distance_max)){
+					// [解決] 利用深度模式 偵測影格(單一像素) 與 ToF 距離
+					// frame.CalculateLength(frame.databuf[y * frame.width + x])
+					// frame.CalculateLength(擷取深度影像中第N個像素的測距深度)
+					if ((frame.CalculateLength(frame.databuf[y * frame.width + x]) >= framehumans.distance_min) && (frame.CalculateLength(frame.databuf[y * frame.width + x]) <= framehumans.distance_max)){
 						//Valid data(Only data in specific distance for sensor is valid)
 
+						// [解決] 實作 ToF 3D 像素點
 						TofPoint point;		//Coordinate after rotation
 
-						//Get coordinates after 3D conversion
+						// [解決] Get coordinates after 3D conversion
+						// 針對像素點給予相對 X、Y、Z軸 定位距離 
 						point.x = frame3d.frame3d[y * frame3d.width + x].x;
 						point.y = frame3d.frame3d[y * frame3d.width + x].y;
 						point.z = frame3d.frame3d[y * frame3d.width + x].z;
 
-						//Zoom
+						// [解決] Zoom
+						// 將距離進行縮放拉伸，藉此達到放大縮小的功能
+						// point.x = point.x * zoom; 
+						// point.y = point.y * zoom; 
 						point.x *= zoom;
 						point.y *= zoom;
 
-						//Shift to X/Y direction on display
+						// [解決] Shift to X/Y direction on display
+						// 透過共同位移圖像位置，移動點位至需要顯示畫面的地方
+						// 原圖在畫面點位(10, 10) 開始繪圖，增加 dx = 5、dy = 5
+						// 將從畫面點位(15, 15) 開始繪圖造成位移畫面效果
 						point.x += dx;
 						point.y += dy;
 
-						if ((point.x >= 0) && (point.x < img.size().width) &&
-							(point.y >= 0) && (point.y < img.size().height)){
-
+						// [解決] 確認現在像素點位是在畫面之中
+						if ((point.x >= 0) && (point.x < img.size().width) && (point.y >= 0) && (point.y < img.size().height)){
+							
+							// [解決] Within range of Z direction
+							// 確認 z 軸 資料在 人像畫面 的 高度區間 之中	
 							if ((point.z >= framehumans.z_min) && (point.z < framehumans.z_max)){
-								//Within range of Z direction
-
-								if ((z_buffer[(int)point.x][(int)point.y] == 0) ||
-									(z_buffer[(int)point.x][(int)point.y] > point.z)){
-									//Front than data already registered in Z-buffer
-
-									//Register to Z-buffer
+								
+								// [解決] Front than data already registered in Z-buffer
+								// 確認目前像素點的 z軸暫存資料 沒有被塞入過
+								if ((z_buffer[(int)point.x][(int)point.y] == 0) || (z_buffer[(int)point.x][(int)point.y] > point.z)){
+									
+									// [解決] Register to Z-buffer
+									// 將目前的 z軸測距 更新到 z軸暫存資料 之中
 									z_buffer[(int)point.x][(int)point.y] = point.z;
 
-									//Register color to display image based on distance of Z direction
+									// [解決] Register color to display image based on distance of Z direction
+									// 透過拆解像素高度定位、在畫布中的位置等，修改顯示的顏色
 									long color = (long)(65530 * (point.z - framehumans.z_min) / ((framehumans.z_max - framehumans.z_min)));
 
+									// [解決] 透過 openCV 建立矩陣
+									//　將深度的影像資料轉入 RGB 三個通道進行數值塞入，建立色彩顯示點
 									cv::Vec3b v;
 									v.val[0] = frame.ColorTable[0][color];
 									v.val[1] = frame.ColorTable[1][color];
 									v.val[2] = frame.ColorTable[2][color];
 
+									// 	[解決] 確認是否開啟 散點模式
+									// |- 開啟 -> 將 散點 畫在畫布上面
 									if (bPoint){
 										img.at<cv::Vec3b>((int)point.y, (int)point.x) = v;
 									}
 								}
-
+								// [解決] Sub display
+								// 建構視窗子畫面
 								if (bSubDisplay){
-									//Sub display
+									// OpenCV 建構影像矩陣擺放子畫面
+									// 將深度畫面 RGB 通道資料存入矩陣之中，並在子畫面顯示
 									cv::Vec3b v;
 									v.val[0] = frame.ColorTable[0][frame.databuf[y * frame.width + x]];
 									v.val[1] = frame.ColorTable[1][frame.databuf[y * frame.width + x]];
 									v.val[2] = frame.ColorTable[2][frame.databuf[y * frame.width + x]];
-									subdisplay.at<cv::Vec3b>(y * SUB_DISPLAY_HEIGHT / frame3d.height,
-										x * SUB_DISPLAY_WIDTH / frame3d.width) = v;
+									subdisplay.at<cv::Vec3b>(y * SUB_DISPLAY_HEIGHT / frame3d.height, x * SUB_DISPLAY_WIDTH / frame3d.width) = v;
 								}
 							}
 						}
 					}
+					// [解決] Invalid point is (x,y,z) = (0,0,0) 
+					// 如果 3D 轉換禎超過臨界值，則該點位的定位資料為(0, 0, 0)
 					else {
-						//Invalid point is (x,y,z) = (0,0,0)
 						frame3d.frame3d[y * frame3d.width + x].x = 0;
 						frame3d.frame3d[y * frame3d.width + x].y = 0;
 						frame3d.frame3d[y * frame3d.width + x].z = 0;
@@ -1345,7 +1370,7 @@ void main(void)
 				DrawEnableArea();
 			}
 
-			//Draw humans
+			// [解function] Draw humans
 			DrawHumans();
 
 			if ((mode == 'a') || (mode == 'h')){
