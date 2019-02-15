@@ -76,7 +76,8 @@ struct {
 	} Square;
 } Count;
 
-//Enable Area
+// [解決] Enable Area
+// 定義辨識區間結構
 struct {
 	float left_x;
 	float top_y;
@@ -84,19 +85,25 @@ struct {
 	float bottom_y;
 } EnableArea;
 
-//Input key mode
+// [解決] Input key mode
+// TCHAR 定義 c++ 接收使用者輸入
+// 接收使用者輸入模式
 TCHAR mode;
 
-//Display image
+// [解決] Display image
+// OpenCV 建立主影像矩陣
 cv::Mat img(480 * 2, 640 * 2, CV_8UC3);
 
-//Background image
+// [解決] Background image
+// OpenCV 建立背景影像畫布
 cv::Mat back(480 * 2, 640 * 2, CV_8UC3);
 
-//Z-buffer(to understand before and behind)
+// [解決] Z-buffer(to understand before and behind)
+// 建立 z軸暫存矩陣
 float z_buffer[640 * 2][480 * 2];
 
-//ini file
+// [解決] ini file
+// 設定 ini 讀取檔案位置
 LPCTSTR inifilename = L"./HumanCounter.ini";
 LPCTSTR inisection = L"Settings";
 
@@ -1359,10 +1366,10 @@ void main(void)
 				}
 			}
 
-			//Catch detected humans
+			// [解function] Catch detected humans
 			CatchHumans(&framehumans);
 
-			//Human count
+			// [解function] Human count
 			CountHumans();
 
 			//Draw Enable Area
@@ -1606,7 +1613,7 @@ void main(void)
 				cv::imshow("Human Counter", img);
 			}
 		}
-
+		// [解決] 等待 10ms 並抓取鍵盤按鍵輸入值
 		auto key = cv::waitKey(10);
 		switch (key){
 		case 'a':
@@ -1729,6 +1736,11 @@ void main(void)
 				mode = '0';
 			}
 			break;
+		// OpenCV 上下左右 key 值
+		// 2490368 --> 上
+		// 2621440 --> 下
+		// 2424832 --> 左
+		// 2555904 --> 右
 		case 2490368:	//Up key
 			switch (mode){
 			case 'a':
@@ -1925,7 +1937,9 @@ void main(void)
 		}
 	}
 
-	//Stop and closr TOF sensor
+	// [解決] Stop and closr TOF sensor
+	// 停止 與 關閉 ToF 設備
+	// 關閉 OpenCV 繪製的視窗
 	bool berror = false;
 	if (tof.Stop() != Result::OK){
 		std::cout << "TOF ID " << tof.tofinfo.tofid << " Stop Error" << endl;
@@ -1945,7 +1959,8 @@ void main(void)
 		system("pause");
 	}
 
-	//Save ini file
+	// [解決] Save ini file
+	// 對於畫布擷取，進行畫面存檔
 	if (SaveIniFile() == false){
 		std::cout << "Ini File Write Error" << endl;
 		system("pause");
