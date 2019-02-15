@@ -160,7 +160,8 @@ vector<AppHuman> apphumans;
 //Human ID managed in application
 int apphumanid = 0;
 
-//Save ini file 儲存 ini 設定檔
+// [解決] Save ini file 
+// 儲存 ini 設定檔
 bool SaveIniFile(void)
 {
 	BOOL ret;
@@ -265,7 +266,7 @@ bool SaveIniFile(void)
 	return true;
 }
 
-// [解決]Load ini file 
+// [解決] Load ini file 
 // 讀取 Human ini 組態檔案
 bool LoadIniFile(void){
 
@@ -358,10 +359,13 @@ bool LoadIniFile(void){
 //Initialize humans information
 void InitializeHumans(void)
 {
-	//Initialize humans in application
-	apphumans.clear();
+	// [解決] Initialize humans in application
+	// 初始化 apphumans 結構矩陣
+	// 清除 apphumans 矩陣資料
+ 	apphumans.clear();
 
-	//Human ID managed in application
+	// [解決] Human ID managed in application
+	// 初始化系統辨識人數
 	apphumanid = 0;
 }
 
@@ -422,7 +426,8 @@ void CountHumans(void)
 		if (InCountArea(apphumans[ahno].x, apphumans[ahno].y)){
 			//In count area
 
-			//countup
+			// [解決] countup
+			// 增加辨識區間內計算的人數
 			Count.InArea++;
 
 			if (!InCountArea(apphumans[ahno].prex, apphumans[ahno].prey)){
@@ -650,10 +655,10 @@ void DrawHumans(void)
 	}
 }
 
+// [解決] Display count area
 // 顯示計算人數數量文字區域
 void DrawCount(void)
 {
-	//Display count area
 	float x = Count.Square.left_x * zoom + dx;
 	float y = Count.Square.top_y * zoom + dy;
 	float lx = Count.Square.right_x * zoom + dx - x;
@@ -755,6 +760,7 @@ void DrawCount(void)
 	ty += tdy;
 }
 
+// [解決] 建構辨識區間的外框
 void DrawEnableArea(void)
 {
 	cv::Scalar color = cv::Scalar(0, 255, 255);
