@@ -110,7 +110,8 @@ LPCTSTR inisection = L"Settings";
 //Save file name
 string savefile;	//Image save file
 
-//Initial settings
+// [解決] Initial settings
+// 初始化相關資料
 float angle_x = 90.0f;				//Angle to rotate around X-axis(degree)
 float angle_y = 0.0f;				//Angle to rotate around Y-axis(degree)
 float angle_z = 0.0f;				//Angle to rotate around Z-axis(degree)
@@ -126,7 +127,8 @@ bool bSubDisplay = true;			//Mode to display sub display 顯示 視訊子畫面 
 bool bEnableArea = false;			//Valid/Invalid Enable Area
 bool bEnableAreaShift = true;		//In Enable Area setting mode... true: Whole box shift, false: Box size change
 
-//Human information
+// [解決] Human information
+// 人像資訊
 struct AppHuman {
 
 	long id;					//Human ID managed in HumanDetect function of SDK
@@ -154,10 +156,12 @@ struct AppHuman {
 	int exitdir;				//Direction exiting from the count area(COUNT_XXX macro)
 };
 
-//Array for humans in application
+// [解決] Array for humans in application
+// 建立 apphumans 空矩陣資料
 vector<AppHuman> apphumans;
 
-//Human ID managed in application
+// [解決] Human ID managed in application
+// 設定辨識人員計數 0
 int apphumanid = 0;
 
 // [解決] Save ini file 
@@ -170,7 +174,7 @@ bool SaveIniFile(void)
 	swprintf_s(strBuffer, TEXT("%f"), angle_x);
 	ret = WritePrivateProfileString(inisection, L"ANGLE_X", (LPCTSTR)strBuffer, inifilename);
 	if (ret != TRUE){
-		return false;
+		return false; 
 	}
 
 	swprintf_s(strBuffer, TEXT("%f"), angle_y);
@@ -369,6 +373,8 @@ void InitializeHumans(void)
 	apphumanid = 0;
 }
 
+// [解決] Incount Area
+// 確認人員是否存在偵測區間之中
 bool InCountArea(float x, float y)
 {
 	if ((x >= Count.Square.left_x) && (x <= Count.Square.right_x) && (y >= Count.Square.top_y) && (y <= Count.Square.bottom_y))
@@ -387,6 +393,14 @@ bool InEnableArea(float x, float y)
 	return false;
 }
 
+// [解決] 計算人員進出位置的方向
+// 透過定義辨識區間的位置
+// 利用兩個線性方程式(左上右下 / 右上左下)分割攝像畫面
+// 將畫面上打一個 X 分割前後左右
+// 將人員進入辨識到的畫布位置(X1, Y1)塞入兩個線性方程式
+// 線性方程式A : 比 左上右下(大/小) 右上角/左下角
+// 線性方程式B : 比 左下右上(大/小) 左上角/右下角
+// 透過線性方程式A, B交疊與大小匹配 >>> 辨別人員進出位置
 int CountDirection(float x, float y)
 {
 	//Linear equation from upper left to lower right of count area�Fy = a1 * x + b1
@@ -1378,32 +1392,35 @@ void main(void)
 			// [解function] Human count
 			CountHumans();
 
-			//Draw Enable Area
+			// [解function] Draw Enable Area
 			if (mode == 'e'){
 				DrawEnableArea();
 			}
 
 			// [解function] Draw humans
+			// 繪製人像抓取定位
 			DrawHumans();
 
 			if ((mode == 'a') || (mode == 'h')){
-				//Draw side/front view
+				// [解function] Draw side/front view
+				// 繪製3D轉換影像
 				DrawSection(&frame3d);
 			}
 			else if (bCount){
-				//Draw human counter
+				// [解決function] Draw human counter
+				// 繪製人數計算列表
 				DrawCount();
 			}
 
-			//Display information
-			int tx = 10;
-			int ty = 80;
-			int tdy = 40;
-			cv::Scalar white(255, 255, 255);
-			cv::Scalar blue(255, 0, 0);
-			cv::Scalar red(0, 0, 255);
-			cv::Scalar gray(128, 128, 128);
-			cv::Scalar color = white;
+			// [解決] Display information
+			int tx = 10;						// 文字 x 軸定位
+			int ty = 80;						// 文字 y 軸定位
+			int tdy = 40;						// 文字大小設置
+			cv::Scalar white(255, 255, 255);	// 畫布顏色設定 (Blue, Green, Red, 透明度)
+			cv::Scalar blue(255, 0, 0);			// 同上
+			cv::Scalar red(0, 0, 255);			// 同上
+			cv::Scalar gray(128, 128, 128);		// 同上
+			cv::Scalar color = white;	
 			cv::Scalar color2 = white;
 
 			string text = VERSION;
